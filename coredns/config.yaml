@@ -1,5 +1,5 @@
 ---
-version: 0.0.1e
+version: 0.0.2
 slug: coredns
 name: coredns
 description: CoreDNS is a flexible DNS server written in Go.
@@ -25,11 +25,16 @@ options:
   customize:
     active: false
     folder: coredns
+  acl_allow:
+    - 192.168.0.0/16
+    - 10.0.0.0/8
 ports:
   53/tcp: 53
   53/udp: 53
 schema:
   defaults:
+    - str
+  acl_allow:
     - str
   customize:
     active: bool
