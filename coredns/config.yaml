@@ -1,8 +1,8 @@
 ---
-version: 0.0.1c
+version: 0.0.1d
 slug: coredns
 name: coredns
-description: CoreDNS is a DNS server written in Go. It can be used in a multitude of environments because of its flexibility.
+description: CoreDNS is a flexible DNS server written in Go.
 url: https://github.com/SharkyRawr/hass-coredns
 advanced: true
 arch:
