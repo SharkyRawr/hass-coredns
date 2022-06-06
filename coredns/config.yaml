@@ -1,5 +1,5 @@
 ---
-version: 0.0.1
+version: 0.0.1a
 slug: coredns
 name: coredns
 description: coredns is a highly DNS-, DoS- and abuse-aware loadbalancer.
