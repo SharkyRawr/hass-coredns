@@ -1,0 +1,6 @@
+#!/usr/bin/with-contenv bashio
+CONFIG="/etc/corefile.conf"
+
+# Run dnsmasq
+bashio::log.info "Starting CoreDNS..."
+exec coredns -conf "${CONFIG}" 

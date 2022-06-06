@@ -1,0 +1,36 @@
+---
+version: 0.0.1
+slug: coredns
+name: coredns
+description: coredns is a highly DNS-, DoS- and abuse-aware loadbalancer.
+url: https://github.com/SharkyRawr/hass-coredns
+advanced: true
+arch:
+  - armhf
+  - armv7
+  - aarch64
+  - amd64
+  - i386
+image: sophiefox/hass-coredns-{arch}
+init: false
+map:
+  - share
+options:
+  defaults:
+    - 8.8.8.8
+    - 8.4.4.4
+    - 1.1.1.1
+    - 1.0.0.1
+  customize:
+    active: false
+    folder: coredns
+ports:
+  53/tcp: 53
+  53/udp: 53
+schema:
+  defaults:
+    - str
+  customize:
+    active: bool
+    folder: str
+startup: system
