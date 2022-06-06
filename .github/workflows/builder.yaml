@@ -111,4 +111,3 @@ jobs:
             --addon
         env:
           CAS_API_KEY: ${{ secrets.CAS_TOKEN }}
-          SIGNER_ID: ${{ secrets.SIGNER_ID }}
