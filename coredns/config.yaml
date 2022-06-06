@@ -1,5 +1,5 @@
 ---
-version: 0.0.1d
+version: 0.0.1e
 slug: coredns
 name: coredns
 description: CoreDNS is a flexible DNS server written in Go.
@@ -12,6 +12,7 @@ arch:
   - amd64
   - i386
 image: sophiefox/hass-coredns-{arch}
+codenotary: cas@sophie.lgbt
 init: false
 map:
   - share
