@@ -6,7 +6,7 @@ CoreDNS DNS server for Home Assistant.
 
 ## About
 
-You can use this add-on to install CoreDNS, which is an open-source (GPLv2 licensed) DNS server. For more information, please see [CoreDNS][CoreDNS]
+You can use this add-on to install CoreDNS, which is an open-source (Apache-2.0 licensed) DNS server. For more information, please see [CoreDNS][CoreDNS]
 
 [aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
 [amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
