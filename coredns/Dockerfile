@@ -5,7 +5,7 @@ FROM $BUILD_FROM
 ENV LANG C.UTF-8
 
 # Setup base
-RUN apk add --no-cache coredns=1.8.6-r4 ca-certificates
+RUN apk add --no-cache coredns=1.9.3-r4 ca-certificates
 
 # Copy data
 COPY rootfs /
