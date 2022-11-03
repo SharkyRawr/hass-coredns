@@ -1,7 +1,7 @@
 ---
 version: 1.10.0a
 slug: coredns
-name: coredns
+name: CoreDNS
 description: CoreDNS is a flexible DNS server written in Go.
 url: https://github.com/SharkyRawr/hass-coredns
 advanced: true
