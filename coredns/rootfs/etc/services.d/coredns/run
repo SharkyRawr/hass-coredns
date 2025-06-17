@@ -1,6 +1,13 @@
 #!/usr/bin/with-contenv bashio
+# ...existing code...
 CONFIG="/etc/corefile.conf"
+
+# Validate config exists
+if [[ ! -f "${CONFIG}" ]]; then
+    bashio::log.error "Configuration file ${CONFIG} not found"
+    exit 1
+fi
 
 # Run coredns
 bashio::log.info "Starting CoreDNS..."
-exec coredns -conf "${CONFIG}" 
+exec coredns -conf "${CONFIG}"

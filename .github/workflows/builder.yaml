@@ -11,6 +11,7 @@ on:
     branches: ["main"]
   push:
     branches: ["main"]
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   init:
@@ -22,11 +23,21 @@ jobs:
       changed: ${{ steps.changed_addons.outputs.changed }}
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0  # Needed for changed file detection
 
       - name: Get changed files
         id: changed_files
-        uses: masesgroup/retrieve-changed-files@v3.0.0
+        uses: tj-actions/changed-files@v45.0.4  # More reliable and actively maintained
+        with:
+          files: |
+            **/*.yaml
+            **/*.yml
+            **/Dockerfile
+            **/rootfs/**
+            **/data/**
+            **/apparmor.txt
 
       - name: Get add-ons
         id: addons
@@ -42,9 +53,9 @@ jobs:
         run: |
           declare -a changed_addons
           for addon in ${{ steps.addons.outputs.addons }}; do
-            if [[ "${{ steps.changed_files.outputs.all }}" =~ $addon ]]; then
+            if [[ "${{ steps.changed_files.outputs.all_changed_files }}" =~ $addon ]]; then
               for file in ${{ env.MONITORED_FILES }}; do
-                  if [[ "${{ steps.changed_files.outputs.all }}" =~ $addon/$file ]]; then
+                  if [[ "${{ steps.changed_files.outputs.all_changed_files }}" =~ $addon/$file ]]; then
                     if [[ ! "${changed_addons[@]}" =~ $addon ]]; then
                       changed_addons+=("\"${addon}\",");
                     fi
@@ -68,13 +79,14 @@ jobs:
     if: needs.init.outputs.changed == 'true'
     name: Build ${{ matrix.arch }} ${{ matrix.addon }} add-on
     strategy:
+      fail-fast: false  # Don't cancel other builds if one fails
       matrix:
         addon: ${{ fromJson(needs.init.outputs.changed_addons) }}
         arch: ["aarch64", "amd64", "armhf", "armv7", "i386"]
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4.1.1
+        uses: actions/checkout@v4.2.2
 
       - name: Get information
         id: info
@@ -82,13 +94,15 @@ jobs:
         with:
           path: "./${{ matrix.addon }}"
 
-      - name: Check add-on
+      - name: Check if architecture is supported
         id: check
         run: |
           if [[ "${{ steps.info.outputs.architectures }}" =~ ${{ matrix.arch }} ]]; then
              echo "build_arch=true" >> "$GITHUB_OUTPUT";
+             echo "✅ Building ${{ matrix.addon }} for ${{ matrix.arch }}"
            else
-             echo "${{ matrix.arch }} is not a valid arch for ${{ matrix.addon }}, skipping build";
+             echo "⏭️ ${{ matrix.arch }} is not supported for ${{ matrix.addon }}, skipping";
+             echo "build_arch=false" >> "$GITHUB_OUTPUT";
           fi
 
       - name: Set build arguments
@@ -99,8 +113,8 @@ jobs:
           fi
 
       - name: Login to DockerHub
-        if: env.BUILD_ARGS == '--docker-hub-check'
-        uses: docker/login-action@v3.0.0
+        if: steps.check.outputs.build_arch == 'true' && env.BUILD_ARGS == '--docker-hub-check'
+        uses: docker/login-action@v3.3.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -116,3 +130,47 @@ jobs:
             --addon
         env:
           CAS_API_KEY: ${{ secrets.CAS_TOKEN }}
+
+      - name: Upload build logs on failure
+        if: failure() && steps.check.outputs.build_arch == 'true'
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: build-logs-${{ matrix.addon }}-${{ matrix.arch }}
+          path: /tmp/build.log
+          retention-days: 7
+
+  # Optional: Add a job to comment on PR with build results
+  comment:
+    needs: [init, build]
+    runs-on: ubuntu-latest
+    if: always() && github.event_name == 'pull_request' && needs.init.outputs.changed == 'true'
+    steps:
+      - name: Comment PR
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
+            
+            const buildJobs = jobs.jobs.filter(job => job.name.includes('Build'));
+            const successful = buildJobs.filter(job => job.conclusion === 'success').length;
+            const failed = buildJobs.filter(job => job.conclusion === 'failure').length;
+            const skipped = buildJobs.filter(job => job.conclusion === 'skipped').length;
+            
+            const body = `## 🔨 Add-on Build Results
+            
+            - ✅ **Successful**: ${successful}
+            - ❌ **Failed**: ${failed}  
+            - ⏭️ **Skipped**: ${skipped}
+            
+            ${failed > 0 ? '⚠️ Some builds failed. Check the logs for details.' : '🎉 All builds completed successfully!'}`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
