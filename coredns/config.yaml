@@ -1,5 +1,5 @@
 ---
-version: 1.12.2
+version: 1.12.2-r1
 slug: coredns
 name: CoreDNS
 description: CoreDNS is a flexible DNS server written in Go.
