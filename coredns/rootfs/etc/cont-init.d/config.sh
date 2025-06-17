@@ -18,8 +18,3 @@ if [[ ! -f "${CONFIG}" ]]; then
     bashio::log.error "Configuration file was not created"
     exit 1
 fi
-if ! coredns -conf "${CONFIG}" -validate; then
-    bashio::log.error "CoreDNS configuration validation failed"
-    exit 1
-fi
-bashio::log.info "CoreDNS configuration is valid"
