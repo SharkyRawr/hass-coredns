@@ -8,7 +8,7 @@ ENV LANG C.UTF-8
 #RUN apk add --no-cache coredns=1.9.3-r0 ca-certificates
 RUN apk add --no-cache coredns-openrc ca-certificates musl unbound-libs && \
     apk add --no-cache --virtual .build-deps git go && \
-    git clone --depth=1 https://github.com/coredns/coredns -b v1.12.4 && \
+    git clone --depth=1 https://github.com/coredns/coredns -b v1.13.1 && \
     cd coredns && \
         go get github.com/openshift/coredns-mdns && \
         echo "mdns:github.com/openshift/coredns-mdns" >> plugin.cfg && \
