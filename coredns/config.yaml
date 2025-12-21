@@ -6,11 +6,8 @@ description: CoreDNS is a flexible DNS server written in Go.
 url: https://github.com/SharkyRawr/hass-coredns
 advanced: true
 arch:
-  - armhf
-  - armv7
   - aarch64
   - amd64
-  - i386
 image: sophiefox/hass-coredns-{arch}
 codenotary: cas@sophie.lgbt
 init: false
