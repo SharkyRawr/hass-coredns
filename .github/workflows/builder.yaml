@@ -23,13 +23,13 @@ jobs:
       changed: ${{ steps.changed_addons.outputs.changed }}
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Needed for changed file detection
 
       - name: Get changed files
         id: changed_files
-        uses: tj-actions/changed-files@v47.0.4  # More reliable and actively maintained
+        uses: tj-actions/changed-files@v47 # More reliable and actively maintained
         with:
           files: |
             **/*.yaml
@@ -86,7 +86,7 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6
 
       - name: Get information
         id: info
@@ -114,7 +114,7 @@ jobs:
 
       - name: Login to DockerHub
         if: steps.check.outputs.build_arch == 'true' && env.BUILD_ARGS == '--docker-hub-check'
-        uses: docker/login-action@v3.7.0
+        uses: docker/login-action@v3.7
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -133,7 +133,7 @@ jobs:
 
       - name: Upload build logs on failure
         if: failure() && steps.check.outputs.build_arch == 'true'
-        uses: actions/upload-artifact@v7.0.0
+        uses: actions/upload-artifact@v7
         with:
           name: build-logs-${{ matrix.addon }}-${{ matrix.arch }}
           path: /tmp/build.log
