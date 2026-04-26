@@ -114,14 +114,14 @@ jobs:
 
       - name: Login to DockerHub
         if: steps.check.outputs.build_arch == 'true' && env.BUILD_ARGS == '--docker-hub-check'
-        uses: docker/login-action@v3.7
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build ${{ matrix.addon }} add-on
         if: steps.check.outputs.build_arch == 'true'
-        uses: home-assistant/builder@2026.02.1
+        uses: home-assistant/builder@2026.03.2
         with:
           args: |
             ${{ env.BUILD_ARGS }} \
@@ -146,7 +146,7 @@ jobs:
     if: always() && github.event_name == 'pull_request' && needs.init.outputs.changed == 'true'
     steps:
       - name: Comment PR
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
