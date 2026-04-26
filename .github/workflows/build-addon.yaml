@@ -103,6 +103,7 @@ jobs:
           container-registry: docker.io
           container-registry-password: ${{ secrets.DOCKERHUB_TOKEN }}
           container-registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          cosign: "false"
           context: "./${{ inputs.addon }}"
           image: ${{ matrix.image }}
           image-tags: |
@@ -132,6 +133,7 @@ jobs:
           container-registry: docker.io
           container-registry-password: ${{ secrets.DOCKERHUB_TOKEN }}
           container-registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          cosign: "false"
           image-name: ${{ needs.prepare.outputs.image_name }}
           image-tags: |
             ${{ needs.prepare.outputs.version }}
