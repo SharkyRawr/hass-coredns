@@ -44,7 +44,9 @@ jobs:
           URL: ${{ steps.info.outputs.url }}
           VERSION: ${{ steps.info.outputs.version }}
         run: |
-          image="${IMAGE/\{arch\}-/}"
+          image="${IMAGE%\"}"
+          image="${image#\"}"
+          image="${image/\{arch\}-/}"
           image="${image/-\{arch\}/}"
           image="${image/\{arch\}/}"
           image="${image%-}"

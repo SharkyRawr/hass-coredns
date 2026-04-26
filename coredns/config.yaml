@@ -8,7 +8,7 @@ advanced: true
 arch:
   - aarch64
   - amd64
-image: sophiefox/hass-coredns
+image: docker.io/sophiefox/hass-coredns
 init: false
 map:
   - share
