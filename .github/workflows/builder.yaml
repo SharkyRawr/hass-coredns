@@ -3,147 +3,93 @@
 name: Build add-on
 
 env:
-  BUILD_ARGS: "--test"
-  MONITORED_FILES: "apparmor.txt build.yaml config.yaml Dockerfile data rootfs"
+  MONITORED_FILES: "config.json config.yaml config.yml Dockerfile rootfs"
 
 on:
   pull_request:
     branches: ["main"]
   push:
     branches: ["main"]
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   init:
-    runs-on: ubuntu-latest
     name: Initialize builds
+    runs-on: ubuntu-latest
     outputs:
-      changed_files: ${{ steps.changed_files.outputs.all }}
-      changed_addons: ${{ steps.changed_addons.outputs.addons }}
-      changed: ${{ steps.changed_addons.outputs.changed }}
+      changed: ${{ steps.filter.outputs.changed }}
+      changed_addons: ${{ steps.filter.outputs.changed_addons }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0  # Needed for changed file detection
 
       - name: Get changed files
         id: changed_files
-        uses: tj-actions/changed-files@v47 # More reliable and actively maintained
-        with:
-          files: |
-            **/*.yaml
-            **/*.yml
-            **/Dockerfile
-            **/rootfs/**
-            **/data/**
-            **/apparmor.txt
+        uses: tj-actions/changed-files@v47
 
-      - name: Get add-ons
+      - name: Find add-on directories
         id: addons
-        run: |
-          declare -a addons
-          for addon in $(find ./ -name config.yaml | cut -d "/" -f2 | sort -u); do
-            addons+=("$addon");
-          done
-          echo "addons=${addons[@]}" >> "$GITHUB_OUTPUT"
+        uses: home-assistant/actions/helpers/find-addons@master
 
-      - name: Get changed add-ons
-        id: changed_addons
-        run: |
-          declare -a changed_addons
-          for addon in ${{ steps.addons.outputs.addons }}; do
-            if [[ "${{ steps.changed_files.outputs.all_changed_files }}" =~ $addon ]]; then
-              for file in ${{ env.MONITORED_FILES }}; do
-                  if [[ "${{ steps.changed_files.outputs.all_changed_files }}" =~ $addon/$file ]]; then
-                    if [[ ! "${changed_addons[@]}" =~ $addon ]]; then
-                      changed_addons+=("\"${addon}\",");
-                    fi
-                  fi
-              done
-            fi
-          done
-
-          changed=$(echo ${changed_addons[@]} | rev | cut -c 2- | rev)
-          if [[ -n ${changed} ]]; then
-            echo "Changed add-ons: $changed";
-            echo "changed=true" >> "$GITHUB_OUTPUT";
-            echo "addons=[$changed]" >> "$GITHUB_OUTPUT";
-          else
-            echo "No add-on had any monitored files changed (${{ env.MONITORED_FILES }})";
-          fi
-
-  build:
-    needs: init
-    runs-on: ubuntu-latest
-    if: needs.init.outputs.changed == 'true'
-    name: Build ${{ matrix.arch }} ${{ matrix.addon }} add-on
-    strategy:
-      fail-fast: false  # Don't cancel other builds if one fails
-      matrix:
-        addon: ${{ fromJson(needs.init.outputs.changed_addons) }}
-        arch: ["aarch64", "amd64"]
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-
-      - name: Get information
-        id: info
-        uses: home-assistant/actions/helpers/info@master
-        with:
-          path: "./${{ matrix.addon }}"
-
-      - name: Check if architecture is supported
-        id: check
-        run: |
-          if [[ "${{ steps.info.outputs.architectures }}" =~ ${{ matrix.arch }} ]]; then
-             echo "build_arch=true" >> "$GITHUB_OUTPUT";
-             echo "✅ Building ${{ matrix.addon }} for ${{ matrix.arch }}"
-           else
-             echo "⏭️ ${{ matrix.arch }} is not supported for ${{ matrix.addon }}, skipping";
-             echo "build_arch=false" >> "$GITHUB_OUTPUT";
-          fi
-
-      - name: Set build arguments
-        if: steps.check.outputs.build_arch == 'true'
-        run: |
-          if [[ -z "${{ github.head_ref }}" ]] && [[ "${{ github.event_name }}" == "push" ]]; then
-              echo "BUILD_ARGS=--docker-hub-check" >> $GITHUB_ENV;
-          fi
-
-      - name: Login to DockerHub
-        if: steps.check.outputs.build_arch == 'true' && env.BUILD_ARGS == '--docker-hub-check'
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build ${{ matrix.addon }} add-on
-        if: steps.check.outputs.build_arch == 'true'
-        uses: home-assistant/builder@2026.03.2
-        with:
-          args: |
-            ${{ env.BUILD_ARGS }} \
-            --${{ matrix.arch }} \
-            --target /data/${{ matrix.addon }} \
-            --addon
+      - name: Filter changed add-ons
+        id: filter
         env:
-          CAS_API_KEY: ${{ secrets.CAS_TOKEN }}
+          ADDONS: ${{ steps.addons.outputs.addons }}
+          CHANGED_FILES: ${{ steps.changed_files.outputs.all_changed_files }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          changed_addons=()
 
-      - name: Upload build logs on failure
-        if: failure() && steps.check.outputs.build_arch == 'true'
-        uses: actions/upload-artifact@v7
-        with:
-          name: build-logs-${{ matrix.addon }}-${{ matrix.arch }}
-          path: /tmp/build.log
-          retention-days: 7
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            changed_addons=(${ADDONS})
+          elif [[ "${CHANGED_FILES}" =~ \.github/workflows/(builder|build-addon)\.yaml ]]; then
+            changed_addons=(${ADDONS})
+          else
+            for addon in ${ADDONS}; do
+              for file in ${MONITORED_FILES}; do
+                if [[ "${CHANGED_FILES}" =~ ${addon}/${file} ]]; then
+                  changed_addons+=("${addon}")
+                  break
+                fi
+              done
+            done
+          fi
 
-  # Optional: Add a job to comment on PR with build results
+          if [[ ${#changed_addons[@]} -gt 0 ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "changed_addons=$(jq -nc '$ARGS.positional' --args "${changed_addons[@]}")" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-addon:
+    name: Build ${{ matrix.addon }}
+    needs: init
+    if: needs.init.outputs.changed == 'true'
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        addon: ${{ fromJSON(needs.init.outputs.changed_addons) }}
+    uses: ./.github/workflows/build-addon.yaml
+    with:
+      addon: ${{ matrix.addon }}
+      publish: ${{ github.event_name == 'push' }}
+    secrets: inherit
+
   comment:
-    needs: [init, build]
+    needs: [init, build-addon]
     runs-on: ubuntu-latest
     if: always() && github.event_name == 'pull_request' && needs.init.outputs.changed == 'true'
+    permissions:
+      issues: write
+      pull-requests: write
     steps:
       - name: Comment PR
         uses: actions/github-script@v9
@@ -155,22 +101,22 @@ jobs:
               run_id: context.runId,
             });
 
-            const buildJobs = jobs.jobs.filter(job => job.name.includes('Build'));
-            const successful = buildJobs.filter(job => job.conclusion === 'success').length;
-            const failed = buildJobs.filter(job => job.conclusion === 'failure').length;
-            const skipped = buildJobs.filter(job => job.conclusion === 'skipped').length;
+            const buildJobs = jobs.jobs.filter((job) => job.name.includes('Build'));
+            const successful = buildJobs.filter((job) => job.conclusion === 'success').length;
+            const failed = buildJobs.filter((job) => job.conclusion === 'failure').length;
+            const skipped = buildJobs.filter((job) => job.conclusion === 'skipped').length;
 
-            const body = `## 🔨 Add-on Build Results
+            const body = `## Add-on Build Results
 
-            - ✅ **Successful**: ${successful}
-            - ❌ **Failed**: ${failed}
-            - ⏭️ **Skipped**: ${skipped}
+            - **Successful**: ${successful}
+            - **Failed**: ${failed}
+            - **Skipped**: ${skipped}
 
-            ${failed > 0 ? '⚠️ Some builds failed. Check the logs for details.' : '🎉 All builds completed successfully!'}`;
+            ${failed > 0 ? 'Some builds failed. Check the logs for details.' : 'All builds completed successfully.'}`;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: body
+              body: body,
             });

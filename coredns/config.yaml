@@ -8,8 +8,7 @@ advanced: true
 arch:
   - aarch64
   - amd64
-image: sophiefox/hass-coredns-{arch}
-codenotary: cas@sophie.lgbt
+image: sophiefox/hass-coredns
 init: false
 map:
   - share

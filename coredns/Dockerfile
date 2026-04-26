@@ -1,5 +1,4 @@
-ARG BUILD_FROM
-FROM $BUILD_FROM 
+FROM ghcr.io/home-assistant/base:3.23
 
 # Add env
 ENV LANG C.UTF-8
