@@ -46,6 +46,15 @@ jobs:
         run: |
           image="${IMAGE%\"}"
           image="${image#\"}"
+          version="${VERSION%\"}"
+          version="${version#\"}"
+          name="${NAME%\"}"
+          name="${name#\"}"
+          description="${DESCRIPTION%\"}"
+          description="${description#\"}"
+          url="${URL%\"}"
+          url="${url#\"}"
+
           image="${image/\{arch\}-/}"
           image="${image/-\{arch\}/}"
           image="${image/\{arch\}/}"
@@ -54,12 +63,12 @@ jobs:
 
           echo "image_name=${image##*/}" >> "$GITHUB_OUTPUT"
           echo "registry_prefix=${image%/*}" >> "$GITHUB_OUTPUT"
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
-          echo "description=${DESCRIPTION}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          echo "description=${description}" >> "$GITHUB_OUTPUT"
 
-          if [[ -n "${URL}" && "${URL}" != "null" ]]; then
-            echo "url=${URL}" >> "$GITHUB_OUTPUT"
+          if [[ -n "${url}" && "${url}" != "null" ]]; then
+            echo "url=${url}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Prepare build matrix
